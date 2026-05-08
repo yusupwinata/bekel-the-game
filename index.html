@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bekel Digital</title>
+    <!-- Menambahkan favicon inline SVG berbentuk bola dan biji bekel -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='22' r='14' fill='%23e11d48'/><g fill='%23ca8a04'><rect x='28' y='38' width='8' height='24' rx='2'/><rect x='20' y='46' width='24' height='8' rx='2'/></g></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #2c1e16;
+            font-family: 'Inter', sans-serif;
+            user-select: none; /* Mencegah seleksi teks saat klik */
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        /* Custom UI overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        .wood-panel {
+            background: linear-gradient(135deg, #8B5A2B, #5C3A21);
+            border: 4px solid #3E2312;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        /* Custom Scrollbar untuk menu jika layar kecil */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="uiLayer" class="overlay">
+        <!-- Main Menu -->
+        <div id="mainMenu" class="wood-panel interactive p-6 md:p-8 rounded-2xl text-center text-white w-11/12 max-w-md max-h-[90vh] overflow-y-auto flex flex-col justify-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-2 text-yellow-400 drop-shadow-md tracking-wider">BEKEL</h1>
+            <p class="mb-6 text-gray-200 text-sm md:text-base">Mainan Tradisional Indonesia</p>
+            
+            <div class="space-y-4 mb-6">
+                <button onclick="startGame('pvp')" class="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-yellow-900 font-bold rounded-xl transition-all shadow-lg transform hover:scale-105">
+                    Player vs Player (Local)
+                </button>
+                <button onclick="startGame('bot')" class="w-full py-3 bg-green-600 hover:bg-green-500 text-green-900 font-bold rounded-xl transition-all shadow-lg transform hover:scale-105">
+                    Player vs Bot
+                </button>
+            </div>
+            
+            <div class="text-sm text-left bg-black bg-opacity-30 p-4 rounded-lg">
+                <p class="font-bold mb-2 text-yellow-300">Cara Bermain:</p>
+                <ul class="list-disc pl-5 space-y-2 text-gray-200">
+                    <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">TAHAN SPASI</kbd> mengatur kekuatan lemparan.</li>
+                    <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">SPASI</kbd> di udara untuk menangkap bola.</li>
+                    <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">KLIK KIRI</kbd> pada bekel untuk mengambilnya.</li>
+                    <li>Tangkap bola <b>tepat setelah 1 pantulan</b>.</li>
+                    <li>Ambil bekel sesuai target level!</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- In-Game HUD -->
+        <div id="hud" class="hidden absolute top-0 left-0 w-full h-full pointer-events-none">
+            
+            <!-- Bottom Right Controls (Pause & Stop) -->
+            <div class="absolute bottom-6 right-6 flex flex-col space-y-3 pointer-events-auto z-40">
+                <button onclick="togglePause()" class="w-12 h-12 bg-gray-800 text-white rounded-full hover:bg-gray-700 font-bold border-2 border-gray-500 shadow-lg flex items-center justify-center text-lg transition transform hover:scale-110" title="Pause">
+                    ||
+                </button>
+                <button onclick="stopGame()" class="w-12 h-12 bg-red-800 text-white rounded-full hover:bg-red-700 font-bold border-2 border-red-500 shadow-lg flex items-center justify-center text-xl transition transform hover:scale-110" title="Stop">
+                    X
+                </button>
+            </div>
+
+            <!-- Player Info -->
+            <div class="absolute top-4 left-4 bg-black bg-opacity-50 p-4 rounded-xl text-white">
+                <h2 id="p1Name" class="text-xl font-bold text-yellow-400">Pemain 1</h2>
+                <p id="p1Level" class="text-sm">Level: Mi-1 (Ambil 1)</p>
+                <p id="p1Progress" class="text-sm">Terkumpul: 0/6</p>
+            </div>
+            <div class="absolute top-4 right-4 bg-black bg-opacity-50 p-4 rounded-xl text-white text-right">
+                <h2 id="p2Name" class="text-xl font-bold text-gray-400">Pemain 2</h2>
+                <p id="p2Level" class="text-sm">Level: Mi-1 (Ambil 1)</p>
+                <p id="p2Progress" class="text-sm">Terkumpul: 0/6</p>
+            </div>
+
+            <!-- Center Info -->
+            <div class="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-30">
+                <h2 id="centerMessage" class="text-3xl md:text-4xl font-bold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] opacity-0 transition-opacity duration-300">
+                    Giliran Pemain 1
+                </h2>
+                <p id="subMessage" class="text-lg md:text-xl text-yellow-300 drop-shadow-md mt-2 opacity-0 transition-opacity duration-300">
+                    Tahan SPASI untuk mengatur kekuatan lempar
+                </p>
+            </div>
+
+            <!-- Power Bar -->
+            <div id="powerBarContainer" class="hidden absolute bottom-12 left-1/2 transform -translate-x-1/2 w-64 h-6 bg-gray-900 rounded-full border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] overflow-hidden z-30">
+                <div id="powerBarFill" class="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-600 w-0"></div>
+            </div>
+        </div>
+
+        <!-- Pause Screen -->
+        <div id="pauseMenu" class="hidden overlay bg-black bg-opacity-80 interactive flex flex-col justify-center items-center z-50">
+            <h1 class="text-6xl font-bold mb-8 text-white drop-shadow-lg tracking-widest">PAUSED</h1>
+            <button onclick="togglePause()" class="w-64 py-3 mb-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl transition-all shadow-lg transform hover:scale-105">
+                Lanjutkan
+            </button>
+            <button onclick="stopGame()" class="w-64 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-lg transform hover:scale-105">
+                Kembali ke Menu
+            </button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOver" class="hidden wood-panel interactive p-8 rounded-2xl text-center text-white max-w-md z-50">
+            <h1 id="winnerText" class="text-4xl font-bold mb-4 text-yellow-400">Pemain Menang!</h1>
+            <button onclick="resetToMenu()" class="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl transition-all shadow-lg transform hover:scale-105">
+                Kembali ke Menu
+            </button>
+        </div>
+    </div> <!-- Close UI Layer -->
+
+    <script>
+        // --- AUDIO SYSTEM ---
+        const audio = {
+            initialized: false,
+            init() {
+                if (this.initialized) return;
+                
+                this.bgm = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.1, decay: 0.5, sustain: 0.3, release: 1 }
+                }).toDestination();
+                this.bgm.volume.value = -15;
+
+                const notes = ["C4", "D4", "F4", "G4", "A4", "C5", "A4", "G4"];
+                let step = 0;
+                Tone.Transport.scheduleRepeat(time => {
+                    this.bgm.triggerAttackRelease(notes[step % notes.length], "8n", time);
+                    step++;
+                }, "4n");
+
+                this.bounce = new Tone.MembraneSynth().toDestination();
+                this.bounce.volume.value = -5;
+
+                this.scatter = new Tone.MetalSynth({
+                    frequency: 200, envelope: { attack: 0.01, decay: 0.1, release: 0.01 },
+                    harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5
+                }).toDestination();
+                this.scatter.volume.value = -10;
+
+                this.pick = new Tone.Synth({
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+                
+                this.catch = new Tone.NoiseSynth({
+                    noise: { type: "brown" },
+                    envelope: { attack: 0.01, decay: 0.1, sustain: 0 }
+                }).toDestination();
+                this.catch.volume.value = -10;
+
+                this.fail = new Tone.FMSynth({
+                    harmonicity: 0.5, modulationIndex: 10,
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.1, decay: 0.5, sustain: 0, release: 0.1 }
+                }).toDestination();
+
+                this.win = new Tone.PolySynth(Tone.Synth).toDestination();
+
+                this.initialized = true;
+                Tone.start(); 
+            },
+            playBounce() { if(this.initialized) this.bounce.triggerAttackRelease("C2", "8n"); },
+            playScatter() {
+                if(!this.initialized) return;
+                let now = Tone.now();
+                let offset = 0;
+                for(let i=0; i<6; i++) {
+                    offset += Math.random() * 0.05 + 0.02; 
+                    this.scatter.triggerAttackRelease("32n", now + offset);
+                }
+            },
+            playPick() { if(this.initialized) this.pick.triggerAttackRelease("E5", "16n"); },
+            playCatch() { if(this.initialized) this.catch.triggerAttackRelease("16n"); },
+            playFail() { if(this.initialized) this.fail.triggerAttackRelease("C2", "2n"); },
+            playWin() { 
+                if(this.initialized) {
+                    const now = Tone.now();
+                    this.win.triggerAttackRelease(["C4", "E4", "G4", "C5"], "2n", now);
+                    this.win.triggerAttackRelease(["F4", "A4", "C5", "F5"], "2n", now + 0.5);
+                    this.win.triggerAttackRelease(["G4", "B4", "D5", "G5"], "1m", now + 1);
+                }
+            }
+        };
+
+        // --- GAME LOGIC ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        const LEVELS = [
+            { name: "Mi-1", target: 1 }, 
+            { name: "Mi-2", target: 2 }, 
+            { name: "Mi-3", target: 3 }, 
+            { name: "Mi-6", target: 6 }  
+        ];
+
+        let state = {
+            mode: 'menu', 
+            turnState: 'IDLE', 
+            players: [],
+            currentPlayer: 0,
+            
+            ball: { x: 0, y: 0, z: 0, vz: 0, radius: 25, bounces: 0 },
+            jacks: [],
+            tempJacksPicked: 0, 
+            
+            power: { isCharging: false, val: 500, min: 500, max: 1500, dir: 1, speed: 1000 },
+            
+            // Animasi Tangan
+            hand: {
+                x: 0, y: 0, openness: 0.2, visible: false,
+                action: 'NONE', animTimer: 0, startX: 0, startY: 0, targetX: 0, targetY: 0
+            },
+            pickAnims: [], // Menyimpan animasi tangan saat mengambil bekel
+
+            lastTime: 0,
+            botTimer: 0
+        };
+
+        const GRAVITY = -1200; 
+        const FLOOR_Z = 0;
+
+        function createJacks() {
+            let j = [];
+            for(let i=0; i<6; i++) {
+                j.push({ x: width/2, y: height/2, active: false, rotation: Math.random() * Math.PI * 2 });
+            }
+            return j;
+        }
+
+        function startGame(mode) {
+            audio.init(); 
+            
+            state.players = [
+                { name: 'Pemain 1', levelIdx: 0, totalStored: 0, isBot: false, color1: '#ff6b6b', color2: '#c0392b' },
+                { name: mode === 'bot' ? 'Bot' : 'Pemain 2', levelIdx: 0, totalStored: 0, isBot: mode === 'bot', color1: '#4facfe', color2: '#0062ff' }
+            ];
+
+            state.currentPlayer = 0;
+            state.jacks = createJacks();
+            state.mode = 'playing';
+            state.power.isCharging = false;
+            
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('gameOver').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            
+            Tone.Transport.start(); 
+            startTurn();
+        }
+
+        function stopGame() {
+            state.mode = 'menu';
+            document.getElementById('pauseMenu').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('gameOver').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+            document.getElementById('powerBarContainer').classList.add('hidden');
+            Tone.Transport.stop();
+        }
+
+        function togglePause() {
+            if(state.mode === 'playing') {
+                state.mode = 'paused';
+                document.getElementById('pauseMenu').classList.remove('hidden');
+                Tone.Transport.pause();
+            } else if (state.mode === 'paused') {
+                state.mode = 'playing';
+                state.lastTime = performance.now(); 
+                document.getElementById('pauseMenu').classList.add('hidden');
+                Tone.Transport.start();
+            }
+        }
+
+        function resetToMenu() {
+            document.getElementById('gameOver').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+            state.mode = 'menu';
+        }
+
+        let messageTimeout = null;
+        function showMessage(main, sub, persistent = false) {
+            const m = document.getElementById('centerMessage');
+            const s = document.getElementById('subMessage');
+            m.innerText = main;
+            s.innerText = sub;
+            m.style.opacity = 1;
+            s.style.opacity = 1;
+            if(messageTimeout) clearTimeout(messageTimeout);
+            if(!persistent) {
+                messageTimeout = setTimeout(() => { m.style.opacity = 0; s.style.opacity = 0; }, 2000);
+            }
+        }
+
+        function triggerFail(reason) {
+            state.turnState = 'FAILED';
+            showMessage("Gagal!", reason + " - Tekan ENTER untuk lanjut", true);
+            audio.playFail();
+            state.power.isCharging = false;
+            document.getElementById('powerBarContainer').classList.add('hidden');
+        }
+
+        function updateHUD() {
+            const p1 = state.players[0];
+            const p2 = state.players[1];
+            
+            const l1 = p1.levelIdx < LEVELS.length ? LEVELS[p1.levelIdx] : LEVELS[LEVELS.length-1];
+            const l2 = p2.levelIdx < LEVELS.length ? LEVELS[p2.levelIdx] : LEVELS[LEVELS.length-1];
+
+            document.getElementById('p1Level').innerText = `Level: ${l1.name} (Ambil ${l1.target})`;
+            document.getElementById('p1Progress').innerText = `Terkumpul: ${p1.totalStored}/6`;
+            
+            document.getElementById('p2Name').innerText = p2.name;
+            document.getElementById('p2Level').innerText = `Level: ${l2.name} (Ambil ${l2.target})`;
+            document.getElementById('p2Progress').innerText = `Terkumpul: ${p2.totalStored}/6`;
+
+            document.getElementById('p1Name').className = state.currentPlayer === 0 ? "text-xl font-bold text-yellow-400" : "text-xl font-bold text-gray-400";
+            document.getElementById('p2Name').className = state.currentPlayer === 1 ? "text-xl font-bold text-yellow-400" : "text-xl font-bold text-gray-400";
+        }
+
+        function startTurn() {
+            state.turnState = 'IDLE';
+            state.ball.x = width / 2;
+            state.ball.y = height - 120; // Bola mulai di bawah dekat player
+            state.ball.z = 0;
+            state.ball.bounces = 0;
+            state.tempJacksPicked = 0;
+            
+            // Setup Hand untuk IDLE
+            state.hand.x = width / 2;
+            state.hand.y = height - 120;
+            state.hand.openness = 0.2; // Sedikit menggenggam bola
+            state.hand.visible = true;
+            state.hand.action = 'IDLE';
+
+            let p = state.players[state.currentPlayer];
+            let lvl = LEVELS[p.levelIdx];
+            
+            showMessage(`Giliran ${p.name}`, `Target: Ambil ${lvl.target} bekel. Tahan SPASI.`);
+            updateHUD();
+        }
+
+        function switchTurn() {
+            state.currentPlayer = state.currentPlayer === 0 ? 1 : 0;
+            let p = state.players[state.currentPlayer];
+            if(p.totalStored === 0) {
+                state.jacks.forEach(j => j.active = false); 
+            }
+            state.power.isCharging = false;
+            document.getElementById('powerBarContainer').classList.add('hidden');
+            startTurn();
+        }
+
+        function actionThrow(tossVelocity) {
+            if(state.turnState !== 'IDLE') return;
+            
+            state.turnState = 'BALL_UP';
+            state.ball.vz = tossVelocity;
+            state.ball.bounces = 0;
+            state.tempJacksPicked = 0;
+            state.power.isCharging = false;
+            document.getElementById('powerBarContainer').classList.add('hidden');
+
+            // Trigger Hand Throw Animation
+            state.hand.action = 'THROW_ANIM';
+            state.hand.animTimer = 0;
+
+            let activeJacks = state.jacks.filter(j => j.active).length;
+            if(activeJacks === 0) {
+                audio.playScatter();
+                state.jacks.forEach(j => {
+                    j.active = true;
+                    let angle = Math.random() * Math.PI * 2;
+                    let dist = 50 + Math.random() * 150;
+                    j.x = width/2 + Math.cos(angle) * dist;
+                    j.y = height/2 - 50 + Math.sin(angle) * dist;
+                    j.rotation = Math.random() * Math.PI * 2;
+                });
+            }
+        }
+
+        function actionCatch() {
+            if(state.turnState !== 'BALL_UP' && state.turnState !== 'BALL_DOWN') return;
+
+            let p = state.players[state.currentPlayer];
+            let lvl = LEVELS[p.levelIdx];
+
+            // Trigger Hand Catch Animation
+            state.hand.action = 'CATCH_ANIM';
+            state.hand.animTimer = 0;
+            state.hand.startX = width / 2;
+            state.hand.startY = height + 100;
+            state.hand.targetX = state.ball.x;
+            state.hand.targetY = state.ball.y - state.ball.z;
+            state.hand.visible = true;
+
+            // Validasi sukses / gagal
+            if(state.ball.bounces === 0) {
+                triggerFail("Menangkap sebelum mantul!");
+                return;
+            }
+            if(state.ball.bounces > 1) {
+                triggerFail("Bola mantul lebih dari 1 kali!");
+                return;
+            }
+            if(state.tempJacksPicked !== lvl.target) {
+                triggerFail(`Harus ambil ${lvl.target} bekel! (Terkumpul ${state.tempJacksPicked})`);
+                return;
+            }
+
+            // SUKSES
+            audio.playCatch();
+            state.turnState = 'CAUGHT'; // Stops physics
+            p.totalStored += state.tempJacksPicked;
+
+            if(p.totalStored >= 6) {
+                p.levelIdx++;
+                p.totalStored = 0;
+                if(p.levelIdx >= LEVELS.length) {
+                    state.mode = 'gameover';
+                    audio.playWin();
+                    document.getElementById('hud').classList.add('hidden');
+                    document.getElementById('gameOver').classList.remove('hidden');
+                    document.getElementById('winnerText').innerText = `${p.name} Menang!`;
+                    Tone.Transport.stop();
+                    return;
+                } else {
+                    showMessage("Bagus!", `Naik ke Level ${LEVELS[p.levelIdx].name}`);
+                }
+            } else {
+                showMessage("Berhasil!", "Tunggu sebentar...");
+            }
+
+            updateHUD();
+            setTimeout(() => { if(state.mode !== 'gameover') startTurn(); }, 1500);
+        }
+
+        function actionPickJack(mouseX, mouseY) {
+            if(state.turnState !== 'BALL_UP' && state.turnState !== 'BALL_DOWN') return;
+            
+            let clickedJack = null;
+            let minDist = 40; 
+            
+            for(let j of state.jacks) {
+                if(!j.active) continue;
+                let dist = Math.hypot(j.x - mouseX, j.y - mouseY);
+                if(dist < minDist) { minDist = dist; clickedJack = j; }
+            }
+
+            if(clickedJack) {
+                audio.playPick();
+                clickedJack.active = false;
+                state.tempJacksPicked++;
+                state.pickAnims.push({ x: clickedJack.x, y: clickedJack.y, timer: 0, duration: 0.4 });
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Enter') {
+                e.preventDefault();
+                if(state.mode === 'playing' && state.turnState === 'FAILED') {
+                    switchTurn();
+                }
+            }
+            if(e.code === 'Space') {
+                e.preventDefault();
+                if(state.mode !== 'playing') return;
+                if(state.turnState === 'FAILED') return; // Mencegah spam Spasi saat gagal
+                
+                let p = state.players[state.currentPlayer];
+                if(p.isBot) return;
+
+                if(state.turnState === 'IDLE' && !state.power.isCharging) {
+                    state.power.isCharging = true;
+                    state.power.val = state.power.min;
+                    state.power.dir = 1;
+                    document.getElementById('powerBarContainer').classList.remove('hidden');
+                }
+                else if(state.turnState === 'BALL_UP' || state.turnState === 'BALL_DOWN') {
+                    // Prevent spamming catch
+                    if(state.hand.action !== 'CATCH_ANIM' && state.hand.action !== 'CAUGHT_HOLD') {
+                        actionCatch();
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if(e.code === 'Space') {
+                e.preventDefault();
+                if(state.mode !== 'playing') return;
+                
+                let p = state.players[state.currentPlayer];
+                if(p.isBot) return;
+
+                if(state.turnState === 'IDLE' && state.power.isCharging) {
+                    actionThrow(state.power.val);
+                }
+            }
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if(state.mode !== 'playing') return;
+            
+            let p = state.players[state.currentPlayer];
+            if(p.isBot) return;
+
+            if(e.button === 0) {
+                actionPickJack(e.clientX, e.clientY);
+            }
+        });
+
+        window.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        function updateBot(dt) {
+            let p = state.players[state.currentPlayer];
+            if(!p.isBot) return;
+
+            state.botTimer += dt;
+            let lvl = LEVELS[p.levelIdx];
+
+            if(state.turnState === 'IDLE') {
+                if(state.botTimer > 1.5) {
+                    let randomPower = state.power.min + Math.random() * (state.power.max - state.power.min);
+                    actionThrow(randomPower);
+                    state.botTimer = 0;
+                }
+            } 
+            else if(state.turnState === 'BALL_UP' || state.turnState === 'BALL_DOWN') {
+                if(state.ball.bounces === 1) {
+                    if(state.tempJacksPicked === lvl.target) {
+                        if(state.botTimer > 0.2) {
+                            if(state.hand.action !== 'CATCH_ANIM') {
+                                if(Math.random() >= 0.05) actionCatch();
+                            }
+                            state.botTimer = 0;
+                        }
+                    } else if (state.tempJacksPicked < lvl.target && state.botTimer > 0.4) {
+                        if(state.hand.action !== 'CATCH_ANIM') actionCatch();
+                    }
+                } 
+                else if (state.ball.bounces === 0) {
+                    if(state.tempJacksPicked < lvl.target && state.botTimer > 0.15) {
+                        let activeJ = state.jacks.filter(j => j.active);
+                        if(activeJ.length > 0) {
+                            let j = activeJ[Math.floor(Math.random() * activeJ.length)];
+                            actionPickJack(j.x, j.y);
+                            state.botTimer = 0; 
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- HAND ANIMATION DRAWING ---
+        function drawHandPalm(ctx, x, y, shortArm = false) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            // Lengan
+            ctx.fillStyle = '#d2a679';
+            ctx.beginPath();
+            if (shortArm) {
+                ctx.rect(-15, 0, 30, 80); // Lengan pendek untuk animasi ambil
+            } else {
+                ctx.rect(-15, 0, 30, window.innerHeight - y + 200);
+            }
+            ctx.fill();
+
+            // Telapak
+            ctx.fillStyle = '#e6b88a';
+            ctx.beginPath();
+            ctx.arc(0, 0, 22, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        function drawHandFingers(ctx, x, y, openness) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#e6b88a';
+
+            const fingerLengths = [25, 30, 28, 20];
+
+            // 4 Jari Atas
+            for(let i=0; i<4; i++) {
+                ctx.beginPath();
+                let startX = -12 + i*8;
+                ctx.moveTo(startX, -5);
+                let endX = startX + (startX * 0.4 * openness); 
+                let endY = -10 - (fingerLengths[i] * openness) + (15 * (1-openness)); 
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+            }
+            
+            // Jempol
+            ctx.beginPath();
+            ctx.moveTo(-18, 5);
+            ctx.lineTo(-18 - 12*openness, 5 - 15*openness);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function update(time) {
+            let dt = (time - state.lastTime) / 1000;
+            state.lastTime = time;
+            if(dt > 0.1) dt = 0.1;
+
+            if(state.mode === 'playing') {
+                
+                // --- PICK ANIMATIONS ---
+                for(let i = state.pickAnims.length - 1; i >= 0; i--) {
+                    state.pickAnims[i].timer += dt;
+                    if(state.pickAnims[i].timer >= state.pickAnims[i].duration) {
+                        state.pickAnims.splice(i, 1);
+                    }
+                }
+
+                // --- HAND LOGIC ---
+                if (state.hand.action === 'IDLE') {
+                    state.ball.x = state.hand.x;
+                    state.ball.y = state.hand.y;
+                } else if (state.hand.action === 'THROW_ANIM') {
+                    state.hand.animTimer += dt;
+                    state.hand.y = (height - 120) - (state.hand.animTimer * 600); 
+                    state.hand.openness = Math.min(1, state.hand.animTimer * 8); 
+                    if (state.hand.animTimer > 0.2) {
+                        state.hand.action = 'WITHDRAW';
+                    }
+                } else if (state.hand.action === 'CATCH_ANIM') {
+                    state.hand.animTimer += dt;
+                    let progress = Math.min(1, state.hand.animTimer * 5); // 0.2s speed
+                    
+                    state.hand.x = state.hand.startX + (state.hand.targetX - state.hand.startX) * progress;
+                    state.hand.y = state.hand.startY + (state.hand.targetY - state.hand.startY) * progress;
+                    state.hand.openness = 1 - progress; // Closes as it reaches ball
+                    
+                    if (progress >= 1) {
+                        if (state.turnState === 'CAUGHT') {
+                            state.hand.action = 'CAUGHT_HOLD';
+                            state.hand.animTimer = 0;
+                        } else {
+                            state.hand.action = 'WITHDRAW'; // Gagal nangkap, tarik tangan lagi
+                        }
+                    }
+                } else if (state.hand.action === 'CAUGHT_HOLD') {
+                    state.hand.animTimer += dt;
+                    state.hand.openness = 0; 
+                    state.ball.x = state.hand.x;
+                    state.ball.y = state.hand.y;
+                    state.ball.z = 0;
+                    if (state.hand.animTimer > 0.5) state.hand.action = 'WITHDRAW';
+                } else if (state.hand.action === 'WITHDRAW') {
+                    state.hand.y += 1000 * dt; 
+                    if (state.hand.y > height + 200) {
+                        state.hand.visible = false;
+                        state.hand.action = 'NONE';
+                    }
+                }
+
+                // --- POWER BAR ---
+                if(state.turnState === 'IDLE' && state.power.isCharging) {
+                    state.power.val += state.power.speed * state.power.dir * dt;
+                    if(state.power.val >= state.power.max) {
+                        state.power.val = state.power.max;
+                        state.power.dir = -1;
+                    } else if(state.power.val <= state.power.min) {
+                        state.power.val = state.power.min;
+                        state.power.dir = 1;
+                    }
+                    let pct = ((state.power.val - state.power.min) / (state.power.max - state.power.min)) * 100;
+                    document.getElementById('powerBarFill').style.width = pct + '%';
+                }
+
+                // --- BALL PHYSICS ---
+                if(state.turnState === 'BALL_UP' || state.turnState === 'BALL_DOWN') {
+                    state.ball.vz += GRAVITY * dt;
+                    state.ball.z += state.ball.vz * dt;
+
+                    if(state.ball.vz < 0 && state.turnState === 'BALL_UP') {
+                        state.turnState = 'BALL_DOWN';
+                    }
+
+                    if(state.ball.z <= FLOOR_Z) {
+                        state.ball.z = FLOOR_Z;
+                        state.ball.vz = Math.abs(state.ball.vz) * 0.7; 
+                        state.ball.bounces++;
+                        audio.playBounce();
+                        
+                        if(state.ball.bounces > 1 && state.turnState !== 'FAILED') {
+                            triggerFail("Bola memantul 2 kali!");
+                        } else if(state.turnState !== 'FAILED') {
+                            state.turnState = 'BALL_UP'; 
+                        }
+                    }
+                }
+
+                updateBot(dt);
+            }
+
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            // Lantai Kayu
+            ctx.fillStyle = '#4a2f1d';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = '#382212';
+            ctx.lineWidth = 4;
+            for(let i=0; i<width; i+=100) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, height);
+                ctx.stroke();
+            }
+
+            if(state.mode !== 'menu') {
+                // Bayangan Bola
+                if(state.turnState !== 'IDLE' && state.turnState !== 'CAUGHT') {
+                    let shadowScale = Math.max(0.2, 1 - (state.ball.z / 600));
+                    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                    ctx.beginPath();
+                    ctx.ellipse(state.ball.x, state.ball.y, state.ball.radius * shadowScale, (state.ball.radius/2) * shadowScale, 0, 0, Math.PI*2);
+                    ctx.fill();
+                }
+
+                // Gambar Bekel
+                ctx.lineWidth = 2;
+                for(let j of state.jacks) {
+                    if(!j.active) continue;
+                    
+                    ctx.save();
+                    ctx.translate(j.x, j.y);
+                    ctx.rotate(j.rotation);
+                    
+                    ctx.fillStyle = '#D4AF37'; 
+                    ctx.strokeStyle = '#B8860B';
+                    
+                    ctx.beginPath();
+                    ctx.rect(-10, -4, 20, 8);
+                    ctx.rect(-4, -10, 8, 20);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 5, 0, Math.PI*2);
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+
+                // 1. Draw Hand Base (Arm + Palm)
+                if(state.hand.visible) {
+                    drawHandPalm(ctx, state.hand.x, state.hand.y);
+                }
+
+                // --- Draw Pick Animations ---
+                for(let anim of state.pickAnims) {
+                    let progress = anim.timer / anim.duration;
+                    ctx.save();
+                    ctx.translate(anim.x, anim.y);
+                    
+                    // Tangan datang dari sudut bawah-kanan layar
+                    ctx.rotate(-Math.PI / 4);
+                    
+                    let offsetY = 0;
+                    let openness = 1;
+                    
+                    if(progress < 0.3) {
+                        let p = progress / 0.3;
+                        offsetY = 60 * (1 - p); // Meluncur masuk
+                        ctx.globalAlpha = p;
+                    } else if(progress < 0.6) {
+                        let p = (progress - 0.3) / 0.3;
+                        openness = 1 - p; // Mencapit bekel
+                    } else {
+                        let p = (progress - 0.6) / 0.4;
+                        offsetY = 60 * p; // Meluncur keluar
+                        openness = 0;
+                        ctx.globalAlpha = 1 - p;
+                    }
+                    
+                    ctx.scale(0.7, 0.7); // Ukuran tangan lebih kecil
+                    drawHandPalm(ctx, 0, offsetY, true);
+                    drawHandFingers(ctx, 0, offsetY, openness);
+                    
+                    ctx.restore();
+                }
+
+                // 2. Draw Ball
+                let p = state.players[state.currentPlayer];
+                let visualY = state.ball.y - state.ball.z;
+                
+                let c1 = p ? p.color1 : '#fff';
+                let c2 = p ? p.color2 : '#ccc';
+
+                let gradient = ctx.createRadialGradient(
+                    state.ball.x - 5, visualY - 5, 2,
+                    state.ball.x, visualY, state.ball.radius
+                );
+                gradient.addColorStop(0, c1);
+                gradient.addColorStop(1, c2);
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(state.ball.x, visualY, state.ball.radius, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = c2;
+                ctx.stroke();
+
+                // 3. Draw Hand Fingers (Menutupi bola jika menggenggam)
+                if(state.hand.visible) {
+                    drawHandFingers(ctx, state.hand.x, state.hand.y, state.hand.openness);
+                }
+            }
+        }
+
+        // Start requestAnimationFrame
+        requestAnimationFrame((time) => {
+            state.lastTime = time;
+            update(time);
+        });
+
+    </script>
+</body>
+</html>
