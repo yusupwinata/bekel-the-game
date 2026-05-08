@@ -24,6 +24,7 @@
             width: 100%;
             height: 100%;
             cursor: crosshair;
+            touch-action: none; /* Mencegah layar ter-scroll saat tap pada tablet */
         }
         /* Custom UI overlays */
         .overlay {
@@ -58,43 +59,78 @@
 
     <div id="uiLayer" class="overlay">
         <!-- Main Menu -->
-        <div id="mainMenu" class="wood-panel interactive p-6 md:p-8 rounded-2xl text-center text-white w-11/12 max-w-md max-h-[90vh] overflow-y-auto flex flex-col justify-center">
-            <h1 class="text-4xl md:text-5xl font-bold mb-2 text-yellow-400 drop-shadow-md tracking-wider">BEKEL</h1>
-            <p class="mb-6 text-gray-200 text-sm md:text-base">Mainan Tradisional Indonesia</p>
+        <div id="mainMenu" class="wood-panel interactive p-4 sm:p-6 md:p-8 rounded-2xl text-center text-white w-[95%] sm:w-11/12 max-w-md max-h-[95vh] overflow-y-auto flex flex-col justify-center m-auto z-50">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-yellow-400 drop-shadow-md tracking-wider">BEKEL</h1>
+            <p class="mb-4 sm:mb-6 text-gray-200 text-xs sm:text-sm md:text-base">Mainan Tradisional Indonesia</p>
             
-            <div class="space-y-4 mb-6">
-                <button onclick="startGame('pvp')" class="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-yellow-900 font-bold rounded-xl transition-all shadow-lg transform hover:scale-105">
+            <div class="space-y-3 sm:space-y-4">
+                <button onclick="startGame('pvp')" class="w-full py-2 sm:py-3 bg-yellow-600 hover:bg-yellow-500 text-yellow-900 font-bold rounded-xl transition-all shadow-lg transform hover:scale-105 text-sm sm:text-base">
                     Player vs Player (Local)
                 </button>
-                <button onclick="startGame('bot')" class="w-full py-3 bg-green-600 hover:bg-green-500 text-green-900 font-bold rounded-xl transition-all shadow-lg transform hover:scale-105">
+                <button onclick="startGame('bot')" class="w-full py-2 sm:py-3 bg-green-600 hover:bg-green-500 text-green-900 font-bold rounded-xl transition-all shadow-lg transform hover:scale-105 text-sm sm:text-base">
                     Player vs Bot
                 </button>
+                <button onclick="showHelp()" class="w-full py-2 sm:py-3 bg-blue-600 hover:bg-blue-500 text-blue-100 font-bold rounded-xl transition-all shadow-lg transform hover:scale-105 text-sm sm:text-base">
+                    Cara Bermain
+                </button>
             </div>
+        </div>
+
+        <!-- Help Menu Screen -->
+        <div id="helpMenu" class="hidden wood-panel interactive p-6 sm:p-8 rounded-2xl text-left text-white w-[95%] sm:w-11/12 max-w-lg max-h-[95vh] overflow-y-auto flex flex-col m-auto z-50 shadow-2xl">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-4 text-yellow-400 text-center border-b-2 border-yellow-600 pb-2">Cara Bermain</h2>
             
-            <div class="text-sm text-left bg-black bg-opacity-30 p-4 rounded-lg">
-                <p class="font-bold mb-2 text-yellow-300">Cara Bermain:</p>
-                <ul class="list-disc pl-5 space-y-2 text-gray-200">
-                    <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">TAHAN SPASI</kbd> mengatur kekuatan lemparan.</li>
-                    <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">SPASI</kbd> di udara untuk menangkap bola.</li>
-                    <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">KLIK KIRI</kbd> pada bekel untuk mengambilnya.</li>
-                    <li>Tangkap bola <b>tepat setelah 1 pantulan</b>.</li>
-                    <li>Ambil bekel sesuai target level!</li>
-                </ul>
+            <div class="space-y-4 text-sm sm:text-base text-gray-200 mb-6">
+                <div>
+                    <h3 class="font-bold text-yellow-300 text-lg mb-1 flex items-center gap-2">💻 Di PC/Laptop:</h3>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">TAHAN SPASI</kbd> untuk mengatur kekuatan lemparan bola.</li>
+                        <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">KLIK KIRI</kbd> pada biji bekel untuk mengambilnya.</li>
+                        <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">SPASI</kbd> di udara untuk menangkap bola kembali.</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-yellow-300 text-lg mb-1 flex items-center gap-2">📱 Di Tablet/HP:</h3>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">TAHAN ACTION</kbd> (tombol kiri bawah) untuk mengatur kekuatan lempar.</li>
+                        <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">TAP</kbd> pada biji bekel di area tengah layar untuk mengambil.</li>
+                        <li><kbd class="bg-gray-200 text-black px-1 rounded shadow">TAP ACTION</kbd> saat bola di udara untuk menangkap.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-black bg-opacity-40 p-3 sm:p-4 rounded-lg mt-4 border border-red-500/30">
+                    <p class="font-bold text-red-400 mb-2">⚠️ Aturan Utama (Mi):</p>
+                    <ul class="list-disc pl-5 space-y-1 text-xs sm:text-sm">
+                        <li>Tangkap bola <b>Tepat Setelah 1 Kali Pantulan</b> di lantai.</li>
+                        <li>Ambil bekel sesuai target Level (Contoh: Level Mi-1 wajib mengambil tepat 1 bekel setiap lemparan).</li>
+                        <li>Jika gagal (salah jumlah / bola jatuh 2x), giliran akan hangus. Tekan Enter / Tap layar untuk lanjut ke lawan.</li>
+                    </ul>
+                </div>
             </div>
+
+            <button onclick="hideHelp()" class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-lg transform hover:scale-105 mt-auto">
+                Tutup & Kembali
+            </button>
         </div>
 
         <!-- In-Game HUD -->
         <div id="hud" class="hidden absolute top-0 left-0 w-full h-full pointer-events-none">
             
-            <!-- Bottom Right Controls (Pause & Stop) -->
-            <div class="absolute bottom-6 right-6 flex flex-col space-y-3 pointer-events-auto z-40">
-                <button onclick="togglePause()" class="w-12 h-12 bg-gray-800 text-white rounded-full hover:bg-gray-700 font-bold border-2 border-gray-500 shadow-lg flex items-center justify-center text-lg transition transform hover:scale-110" title="Pause">
+            <!-- Controls (Pause & Stop) -->
+            <div class="absolute bottom-8 right-8 flex space-x-4 pointer-events-auto z-40">
+                <button onclick="togglePause()" class="w-10 h-10 md:w-12 md:h-12 bg-gray-800 text-white rounded-full hover:bg-gray-700 font-bold border-2 border-gray-500 shadow-lg flex items-center justify-center text-sm md:text-lg transition transform hover:scale-110" title="Pause">
                     ||
                 </button>
-                <button onclick="stopGame()" class="w-12 h-12 bg-red-800 text-white rounded-full hover:bg-red-700 font-bold border-2 border-red-500 shadow-lg flex items-center justify-center text-xl transition transform hover:scale-110" title="Stop">
+                <button onclick="stopGame()" class="w-10 h-10 md:w-12 md:h-12 bg-red-800 text-white rounded-full hover:bg-red-700 font-bold border-2 border-red-500 shadow-lg flex items-center justify-center text-base md:text-xl transition transform hover:scale-110" title="Stop">
                     X
                 </button>
             </div>
+
+            <!-- Touch Action Button (Untuk Tablet/Mobile) -->
+            <button id="touchActionBtn" class="absolute bottom-8 left-8 w-20 h-20 md:w-24 md:h-24 bg-yellow-600 active:bg-yellow-500 text-yellow-100 font-bold rounded-full border-4 border-yellow-400 shadow-[0_10px_20px_rgba(0,0,0,0.5)] pointer-events-auto z-40 flex flex-col items-center justify-center select-none transition-transform transform active:scale-95">
+                <span class="text-sm md:text-base tracking-widest">ACTION</span>
+            </button>
 
             <!-- Player Info -->
             <div class="absolute top-4 left-4 bg-black bg-opacity-50 p-4 rounded-xl text-white">
@@ -109,17 +145,17 @@
             </div>
 
             <!-- Center Info -->
-            <div class="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-30">
+            <div class="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-30 w-full">
                 <h2 id="centerMessage" class="text-3xl md:text-4xl font-bold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] opacity-0 transition-opacity duration-300">
                     Giliran Pemain 1
                 </h2>
-                <p id="subMessage" class="text-lg md:text-xl text-yellow-300 drop-shadow-md mt-2 opacity-0 transition-opacity duration-300">
-                    Tahan SPASI untuk mengatur kekuatan lempar
+                <p id="subMessage" class="text-lg md:text-xl text-yellow-300 drop-shadow-md mt-2 opacity-0 transition-opacity duration-300 px-4">
+                    Tahan SPASI atau ACTION untuk mengatur kekuatan lempar
                 </p>
             </div>
 
             <!-- Power Bar -->
-            <div id="powerBarContainer" class="hidden absolute bottom-12 left-1/2 transform -translate-x-1/2 w-64 h-6 bg-gray-900 rounded-full border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] overflow-hidden z-30">
+            <div id="powerBarContainer" class="hidden absolute bottom-12 left-1/2 transform -translate-x-1/2 w-48 md:w-64 h-6 bg-gray-900 rounded-full border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] overflow-hidden z-30">
                 <div id="powerBarFill" class="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-600 w-0"></div>
             </div>
         </div>
@@ -151,10 +187,13 @@
             init() {
                 if (this.initialized) return;
                 
+                // Tambahkan limiter untuk mencegah suara memuncak (clipping/kresek) yang merusak speaker
+                this.limiter = new Tone.Limiter(-2).toDestination();
+
                 this.bgm = new Tone.Synth({
                     oscillator: { type: "sine" },
                     envelope: { attack: 0.1, decay: 0.5, sustain: 0.3, release: 1 }
-                }).toDestination();
+                }).connect(this.limiter);
                 this.bgm.volume.value = -15;
 
                 const notes = ["C4", "D4", "F4", "G4", "A4", "C5", "A4", "G4"];
@@ -164,50 +203,62 @@
                     step++;
                 }, "4n");
 
-                this.bounce = new Tone.MembraneSynth().toDestination();
+                this.bounce = new Tone.MembraneSynth().connect(this.limiter);
                 this.bounce.volume.value = -5;
 
-                this.scatter = new Tone.MetalSynth({
-                    frequency: 200, envelope: { attack: 0.01, decay: 0.1, release: 0.01 },
-                    harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5
-                }).toDestination();
-                this.scatter.volume.value = -10;
+                // MENGGANTI Tone.MetalSynth dengan Tone.Synth biasa untuk scatter
+                // MetalSynth sangat berat untuk CPU dan menyebabkan CPU spike / game patah-patah!
+                this.scatter = new Tone.PolySynth(Tone.Synth).connect(this.limiter);
+                this.scatter.set({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.01, decay: 0.05, sustain: 0, release: 0.01 }
+                });
+                this.scatter.volume.value = -15;
 
-                this.pick = new Tone.Synth({
+                this.pick = new Tone.PolySynth(Tone.Synth).connect(this.limiter);
+                this.pick.set({
                     oscillator: { type: "triangle" },
                     envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
-                }).toDestination();
+                });
                 
                 this.catch = new Tone.NoiseSynth({
                     noise: { type: "brown" },
                     envelope: { attack: 0.01, decay: 0.1, sustain: 0 }
-                }).toDestination();
+                }).connect(this.limiter);
                 this.catch.volume.value = -10;
 
                 this.fail = new Tone.FMSynth({
                     harmonicity: 0.5, modulationIndex: 10,
                     oscillator: { type: "sawtooth" },
                     envelope: { attack: 0.1, decay: 0.5, sustain: 0, release: 0.1 }
-                }).toDestination();
+                }).connect(this.limiter);
 
-                this.win = new Tone.PolySynth(Tone.Synth).toDestination();
+                this.win = new Tone.PolySynth(Tone.Synth).connect(this.limiter);
 
                 this.initialized = true;
                 Tone.start(); 
             },
-            playBounce() { if(this.initialized) this.bounce.triggerAttackRelease("C2", "8n"); },
+            playBounce() { 
+                if(!this.initialized) return; 
+                let now = Tone.now();
+                // Throttle untuk mencegah error Tone.js saat bola memantul terlalu cepat secara fisika
+                if (this._lastBounce && now < this._lastBounce + 0.1) return;
+                this.bounce.triggerAttackRelease("C2", "8n", now); 
+                this._lastBounce = now;
+            },
             playScatter() {
                 if(!this.initialized) return;
                 let now = Tone.now();
                 let offset = 0;
                 for(let i=0; i<6; i++) {
                     offset += Math.random() * 0.05 + 0.02; 
-                    this.scatter.triggerAttackRelease("32n", now + offset);
+                    // PolySynth membutuhkan notasi nada, ditambahkan "C4"
+                    this.scatter.triggerAttackRelease("C4", "32n", now + offset);
                 }
             },
-            playPick() { if(this.initialized) this.pick.triggerAttackRelease("E5", "16n"); },
-            playCatch() { if(this.initialized) this.catch.triggerAttackRelease("16n"); },
-            playFail() { if(this.initialized) this.fail.triggerAttackRelease("C2", "2n"); },
+            playPick() { if(this.initialized) this.pick.triggerAttackRelease("E5", "16n", Tone.now()); },
+            playCatch() { if(this.initialized) this.catch.triggerAttackRelease("16n", Tone.now()); },
+            playFail() { if(this.initialized) this.fail.triggerAttackRelease("C2", "2n", Tone.now()); },
             playWin() { 
                 if(this.initialized) {
                     const now = Tone.now();
@@ -321,6 +372,16 @@
             state.mode = 'menu';
         }
 
+        function showHelp() {
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('helpMenu').classList.remove('hidden');
+        }
+
+        function hideHelp() {
+            document.getElementById('helpMenu').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+        }
+
         let messageTimeout = null;
         function showMessage(main, sub, persistent = false) {
             const m = document.getElementById('centerMessage');
@@ -337,7 +398,7 @@
 
         function triggerFail(reason) {
             state.turnState = 'FAILED';
-            showMessage("Gagal!", reason + " - Tekan ENTER untuk lanjut", true);
+            showMessage("Gagal!", reason + " - Tap Layar / ENTER untuk lanjut", true);
             audio.playFail();
             state.power.isCharging = false;
             document.getElementById('powerBarContainer').classList.add('hidden');
@@ -379,7 +440,7 @@
             let p = state.players[state.currentPlayer];
             let lvl = LEVELS[p.levelIdx];
             
-            showMessage(`Giliran ${p.name}`, `Target: Ambil ${lvl.target} bekel. Tahan SPASI.`);
+            showMessage(`Giliran ${p.name}`, `Target: Ambil ${lvl.target} bekel. Tahan SPASI / ACTION.`);
             updateHUD();
         }
 
@@ -482,7 +543,7 @@
             if(state.turnState !== 'BALL_UP' && state.turnState !== 'BALL_DOWN') return;
             
             let clickedJack = null;
-            let minDist = 40; 
+            let minDist = 50; // Jarak deteksi sedikit diperbesar untuk touch screen
             
             for(let j of state.jacks) {
                 if(!j.active) continue;
@@ -498,60 +559,81 @@
             }
         }
 
-        window.addEventListener('keydown', (e) => {
-            if(e.code === 'Enter') {
-                e.preventDefault();
-                if(state.mode === 'playing' && state.turnState === 'FAILED') {
-                    switchTurn();
-                }
-            }
-            if(e.code === 'Space') {
-                e.preventDefault();
-                if(state.mode !== 'playing') return;
-                if(state.turnState === 'FAILED') return; // Mencegah spam Spasi saat gagal
-                
-                let p = state.players[state.currentPlayer];
-                if(p.isBot) return;
-
-                if(state.turnState === 'IDLE' && !state.power.isCharging) {
-                    state.power.isCharging = true;
-                    state.power.val = state.power.min;
-                    state.power.dir = 1;
-                    document.getElementById('powerBarContainer').classList.remove('hidden');
-                }
-                else if(state.turnState === 'BALL_UP' || state.turnState === 'BALL_DOWN') {
-                    // Prevent spamming catch
-                    if(state.hand.action !== 'CATCH_ANIM' && state.hand.action !== 'CAUGHT_HOLD') {
-                        actionCatch();
-                    }
-                }
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if(e.code === 'Space') {
-                e.preventDefault();
-                if(state.mode !== 'playing') return;
-                
-                let p = state.players[state.currentPlayer];
-                if(p.isBot) return;
-
-                if(state.turnState === 'IDLE' && state.power.isCharging) {
-                    actionThrow(state.power.val);
-                }
-            }
-        });
-
-        window.addEventListener('mousedown', (e) => {
+        // --- SISTEM INPUT UNIVERSAL (Keyboard & Touch) ---
+        function handleActionStart() {
             if(state.mode !== 'playing') return;
+            if(state.turnState === 'FAILED') return; // Mencegah spam saat gagal
             
             let p = state.players[state.currentPlayer];
             if(p.isBot) return;
 
-            if(e.button === 0) {
-                actionPickJack(e.clientX, e.clientY);
+            if(state.turnState === 'IDLE' && !state.power.isCharging) {
+                state.power.isCharging = true;
+                state.power.val = state.power.min;
+                state.power.dir = 1;
+                document.getElementById('powerBarContainer').classList.remove('hidden');
             }
+            else if(state.turnState === 'BALL_UP' || state.turnState === 'BALL_DOWN') {
+                if(state.hand.action !== 'CATCH_ANIM' && state.hand.action !== 'CAUGHT_HOLD') {
+                    actionCatch();
+                }
+            }
+        }
+
+        function handleActionEnd() {
+            if(state.mode !== 'playing') return;
+            let p = state.players[state.currentPlayer];
+            if(p.isBot) return;
+
+            if(state.turnState === 'IDLE' && state.power.isCharging) {
+                actionThrow(state.power.val);
+            }
+        }
+
+        function handleNextTurn() {
+            if(state.mode === 'playing' && state.turnState === 'FAILED') {
+                switchTurn();
+            }
+        }
+
+        // Event Listener Keyboard
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Enter') { e.preventDefault(); handleNextTurn(); }
+            if(e.code === 'Space') { e.preventDefault(); handleActionStart(); }
         });
+
+        window.addEventListener('keyup', (e) => {
+            if(e.code === 'Space') { e.preventDefault(); handleActionEnd(); }
+        });
+
+        // Event Listener Layar/Canvas (Mouse & Touch)
+        canvas.addEventListener('mousedown', (e) => {
+            if(state.mode !== 'playing') return;
+            if(state.turnState === 'FAILED') { handleNextTurn(); return; }
+            let p = state.players[state.currentPlayer];
+            if(p.isBot) return;
+
+            if(e.button === 0) actionPickJack(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Cegah scroll/zoom di tablet
+            if(state.mode !== 'playing') return;
+            if(state.turnState === 'FAILED') { handleNextTurn(); return; }
+            let p = state.players[state.currentPlayer];
+            if(p.isBot) return;
+
+            let touch = e.touches[0];
+            actionPickJack(touch.clientX, touch.clientY);
+        }, {passive: false});
+
+        // Event Listener Tombol Action (UI Tablet)
+        const actionBtn = document.getElementById('touchActionBtn');
+        actionBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleActionStart(); }, {passive: false});
+        actionBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleActionEnd(); }, {passive: false});
+        actionBtn.addEventListener('mousedown', (e) => { e.preventDefault(); handleActionStart(); });
+        actionBtn.addEventListener('mouseup', (e) => { e.preventDefault(); handleActionEnd(); });
+        actionBtn.addEventListener('mouseleave', (e) => { e.preventDefault(); handleActionEnd(); });
 
         window.addEventListener('contextmenu', (e) => {
             e.preventDefault();
